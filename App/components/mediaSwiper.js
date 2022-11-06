@@ -15,16 +15,19 @@ const height = Dimensions.get("window").height;
 const width = Dimensions.get("window").width;
 
 const MediaSwiper = (props) => {
-  const baseUrl =
-    "https://api.themoviedb.org/3/movie/popular?api_key=ffeb81772005d3aee4bffb4454637fd8&language=en-US&page=1";
+  const [updateListener, setUpdateListener] = useState(false);
+  const [pos, setPos] = useState(0);
+  const [pageNumber, setPageNumber] = useState(1);
+  const baseUrl = `https://api.themoviedb.org/3/movie/popular?api_key=ffeb81772005d3aee4bffb4454637fd8&language=en-US&page=${pageNumber}`;
 
   const [moviesPoster, setMoviePoster] = useState([]);
 
   const fetchMoiveMedia = async () => {
+    //TODO: PAGE 500 is max. Add accordingly.
     let temp = [];
     const movieObjects = {
       method: "get",
-      url: `${baseUrl}/api/users/1`,
+      url: baseUrl,
     };
     try {
       const response = await axios(movieObjects);
@@ -40,15 +43,46 @@ const MediaSwiper = (props) => {
     }
   };
 
+  const nextPageOfMovies = async () => {
+    const nextUrl = `https://api.themoviedb.org/3/movie/popular?api_key=ffeb81772005d3aee4bffb4454637fd8&language=en-US&page=${
+      pageNumber + 1
+    }`;
+    setPageNumber(pageNumber + 1);
+    console.log(nextUrl);
+    let temp = [];
+    const movieObjects = {
+      method: "get",
+      url: nextUrl,
+    };
+    try {
+      const response = await axios(movieObjects);
+      const listOfMovies = response["data"]["results"];
+      for (const [key, movie] of Object.entries(listOfMovies)) {
+        temp.push(movie);
+      }
+      setMoviePoster(moviesPoster.concat(temp));
+      //return temp;
+    } catch (e) {
+      console.log("failed to get movies");
+      //return [];
+    }
+  };
+
   useEffect(() => {
-    fetchMoiveMedia();
-  }, []);
+    if (updateListener) {
+      nextPageOfMovies();
+      setUpdateListener(false);
+    }
+    if (moviesPoster.length === 0) {
+      fetchMoiveMedia();
+    }
+  }, [updateListener]);
 
   return (
     <View>
       <FlatList
         data={moviesPoster}
-        renderItem={({ item }) => {
+        renderItem={({ item, index }) => {
           return <MediaObject src={item} navigation={props.navigation} />;
         }}
         keyExtractor={(item, index) => index.toString()}
@@ -57,6 +91,11 @@ const MediaSwiper = (props) => {
         decelerationRate={"fast"}
         snapToInterval={height}
         disableIntervalMomentum={true}
+        // extraData={updateListener}
+        onEndReached={() => {
+          0.5;
+          setUpdateListener(true);
+        }}
       />
     </View>
   );
