@@ -7,18 +7,36 @@ import {
   Image,
   TouchableOpacity,
 } from "react-native";
+import { getDatabase, push, ref, set, update } from "firebase/database";
+import { getAuth } from "firebase/auth";
+import DoubleClick from "react-native-double-tap";
+import { encode, decode } from "hex-encode-decode";
+
 const height = Dimensions.get("window").height;
 const width = Dimensions.get("window").width;
 
 const MediaObject = (props) => {
   return (
-    <TouchableOpacity
-      activeOpacity={0.9}
-      onPress={() => {
+    <DoubleClick
+      activeOpacity={0.1}
+      singleTap={() => {
         props.navigation.navigate("Detail", {
           mediaInfo: props.src,
         });
       }}
+      doubleTap={() => {
+        console.log("I am being double tapped");
+        const encodedEmail = encode(getAuth().currentUser.email);
+        const db = getDatabase();
+        const movieRef = ref(db, `users/${encodedEmail}/movies`);
+        const movieKey = props.src["id"];
+        const movieObj = {};
+        movieObj[movieKey] = props.src["original_title"];
+        update(movieRef, movieObj).then(() => {
+          console.log("movie added!");
+        });
+      }}
+      delay={200}
     >
       <Image
         source={{
@@ -27,7 +45,7 @@ const MediaObject = (props) => {
         style={styles.imageStyle}
         key={props.keyValue}
       />
-    </TouchableOpacity>
+    </DoubleClick>
   );
 };
 
